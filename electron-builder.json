@@ -1,0 +1,58 @@
+{
+  "appId": "com.yourname.vue3-langchain-app",
+  "productName": "LangChain Studio",
+  "directories": {
+    "output": "release",
+    "buildResources": "resources"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "package.json"
+  ],
+  "mac": {
+    "category": "public.app-category.developer-tools",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64", "arm64"]
+      }
+    ],
+    "icon": "resources/icon.icns",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false
+  },
+  "dmg": {
+    "title": "${productName} ${version}",
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ]
+  },
+  "win": {
+    "target": ["nsis", "portable"],
+    "icon": "resources/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": "always"
+  },
+  "linux": {
+    "target": ["AppImage", "deb"],
+    "category": "Development",
+    "icon": "resources/icon.png"
+  }
+}
