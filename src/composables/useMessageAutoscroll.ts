@@ -13,6 +13,8 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
   const isActiveInteraction = ref(false)
   let hasSubmittedMessage = false // React의 useRef처럼 비반응형
   let isUpdatingSpacerHeight = false
+  const showScrollToBottom = ref(false) // 스크롤 하단 버튼 표시 여부
+  let isAutoScrolling = false // 자동 스크롤 모드 (버튼 클릭 시 활성화)
 
   // Find the last user message index
   const getLastUserMessageIndex = () => {
@@ -73,12 +75,13 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
 
     let targetPosition: number
 
-    if (messageIndex === 0) {
-      // First message: scroll to top
+    if (isLarge) {
+      // Large message: scroll to show bottom of user message
+      // Position so user message bottom is near top of viewport
+      targetPosition = relativePosition + messageHeight - containerHeight * 0.3
+    } else if (messageIndex === 0) {
+      // First small message: scroll to top
       targetPosition = 0
-    } else if (isLarge) {
-      // Large message: scroll to bottom
-      targetPosition = scrollHeight - containerHeight
     } else {
       // Normal message: position at top using relative position
       targetPosition = relativePosition
@@ -177,22 +180,21 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
       baseHeight = Math.max(0, containerHeight - contentHeightAfterTarget - targetMessageHeight)
     }
 
-    // Add extra space for assistant response when streaming
-    const extraSpaceForAssistant = isStreaming.value ? containerHeight * 0.4 : 0
-    const calculatedHeight = Math.max(0, baseHeight + extraSpaceForAssistant)
+    // 스트리밍 중에는 extraSpace 없이, 콘텐츠가 자연스럽게 채워지도록
+    const calculatedHeight = Math.max(0, baseHeight)
 
     console.log('[updateSpacerHeight] Calculation:', {
       targetMessageHeight,
       contentHeightAfterTarget,
       elementsAfterCount: elementsAfter.length,
       baseHeight,
-      extraSpaceForAssistant,
       calculatedHeight,
     })
 
     spacerHeight.value = calculatedHeight
     isUpdatingSpacerHeight = false
   }
+
 
   // Handle new user message submission
   const handleNewUserMessage = () => {
@@ -252,6 +254,59 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
       updateSpacerHeight()
     },
     { flush: 'post', deep: true },
+  )
+
+  // 스트리밍 중 콘텐츠가 늘어나면 버튼 표시 여부 체크
+  watch(
+    () => {
+      const lastMessage = messages.value[messages.value.length - 1]
+      return lastMessage?.content?.length ?? 0
+    },
+    () => {
+      if (isStreaming.value) {
+        // 스트리밍 중이면 바닥에서 멀어졌는지 체크해서 버튼 표시
+        showScrollToBottom.value = !isNearBottom(150)
+      }
+    },
+    { flush: 'post' },
+  )
+
+  // 바닥 근처인지 체크
+  const isNearBottom = (threshold = 100) => {
+    if (!containerRef.value) return true
+    const container = containerRef.value
+    const scrollTop = container.scrollTop
+    const scrollHeight = container.scrollHeight
+    const clientHeight = container.clientHeight
+    return scrollHeight - scrollTop - clientHeight <= threshold
+  }
+
+  // 스크롤 이벤트 핸들러 - 바닥에서 멀어지면 버튼 표시
+  const handleScroll = () => {
+    showScrollToBottom.value = !isNearBottom(150)
+  }
+
+  // 바닥으로 스크롤
+  const scrollToBottom = () => {
+    if (!containerRef.value) return
+    containerRef.value.scrollTo({
+      top: containerRef.value.scrollHeight,
+      behavior: 'smooth',
+    })
+  }
+
+  // containerRef가 설정되면 스크롤 이벤트 등록
+  watch(
+    containerRef,
+    (newContainer, oldContainer) => {
+      if (oldContainer) {
+        oldContainer.removeEventListener('scroll', handleScroll)
+      }
+      if (newContainer) {
+        newContainer.addEventListener('scroll', handleScroll, { passive: true })
+      }
+    },
+    { immediate: true },
   )
 
   // ResizeObserver and MutationObserver setup
@@ -324,5 +379,7 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
     containerRef,
     spacerHeight,
     handleNewUserMessage,
+    showScrollToBottom,
+    scrollToBottom,
   }
 }

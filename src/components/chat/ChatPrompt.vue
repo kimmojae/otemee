@@ -11,7 +11,8 @@
 
     <!-- 입력 컨테이너 -->
     <div
-      class="relative mx-auto flex bg-neutral-100 w-full max-w-[768px] flex-col items-center rounded-3xl pb-2 pt-4 dark:bg-neutral-800 min-h-[88px]"
+      class="relative mx-auto flex w-full max-w-[768px] flex-col items-center rounded-2xl pb-2 pt-4 min-h-[88px]"
+      style="background: var(--chat-surface)"
     >
       <!-- Textarea -->
       <div class="relative w-full px-5">

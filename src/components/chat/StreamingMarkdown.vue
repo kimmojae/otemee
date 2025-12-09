@@ -49,36 +49,36 @@ const isDark = useDark()
 
 /* ===== ChatGPT 스타일 코드블록 ===== */
 
-/* 코드블록 컨테이너 - Light mode */
+/* 코드블록 컨테이너 */
 .streamdown-vue :deep([data-streamdown='code-block']) {
-  border-radius: 8px;
+  border-radius: 1rem; /* rounded-2xl = 16px */
   overflow: hidden;
   border: none;
-  background: #f4f4f4;
+  background: var(--chat-code-body);
   margin: 1rem 0;
 }
 
-/* 헤더 - Light mode */
+/* 헤더 (human message, chat prompt와 동일) */
 .streamdown-vue :deep([data-streamdown='code-block-header']) {
-  background: #e8e8e8;
+  background: var(--chat-surface);
   border-bottom: none;
   padding: 8px 16px;
   font-size: 12px;
 }
 
-/* 언어 배지 - Light mode */
+/* 언어 배지 */
 .streamdown-vue :deep([data-streamdown='code-lang']) {
-  color: #6b6b6b;
+  color: var(--chat-text);
   background: transparent;
   text-transform: lowercase;
   font-weight: 500;
   letter-spacing: 0;
 }
 
-/* 복사 버튼 - Light mode */
+/* 복사 버튼 */
 .streamdown-vue :deep([data-streamdown='copy-button']) {
-  color: #6b6b6b;
-  background: transparent;
+  color: var(--chat-text);
+  background: transparent !important;
   border: none;
   gap: 6px;
   padding: 4px 8px;
@@ -87,13 +87,13 @@ const isDark = useDark()
 }
 
 .streamdown-vue :deep([data-streamdown='copy-button']:hover) {
-  color: #171717;
-  background: transparent;
+  color: var(--chat-text-hover);
+  background: transparent !important;
 }
 
-/* 코드 본문 - Light mode */
+/* 코드 본문 */
 .streamdown-vue :deep([data-streamdown='code-body']) {
-  background: #f4f4f4;
+  background: var(--chat-code-body);
   padding: 16px;
 }
 
@@ -101,31 +101,6 @@ const isDark = useDark()
   background: transparent;
   margin: 0;
   padding: 0;
-}
-
-/* ===== Dark mode 코드블록 ===== */
-.dark .streamdown-vue :deep([data-streamdown='code-block']) {
-  background: #1e1e1e;
-}
-
-.dark .streamdown-vue :deep([data-streamdown='code-block-header']) {
-  background: #2f2f2f;
-}
-
-.dark .streamdown-vue :deep([data-streamdown='code-lang']) {
-  color: #b4b4b4;
-}
-
-.dark .streamdown-vue :deep([data-streamdown='copy-button']) {
-  color: #b4b4b4;
-}
-
-.dark .streamdown-vue :deep([data-streamdown='copy-button']:hover) {
-  color: #ffffff;
-}
-
-.dark .streamdown-vue :deep([data-streamdown='code-body']) {
-  background: #1e1e1e;
 }
 
 /* 인라인 코드 스타일 */
@@ -205,7 +180,17 @@ const isDark = useDark()
   border-color: #52525b;
 }
 
+.dark .streamdown-vue :deep(input[type='checkbox']:checked) {
+  border-color: transparent;
+}
+
 .dark .streamdown-vue :deep(input[type='checkbox']:not(:checked):hover) {
   border-color: #71717a;
+}
+
+/* ===== KaTeX 에러 스타일 숨김 (스트리밍 중 불완전한 수식) ===== */
+.streamdown-vue :deep(.katex-error) {
+  color: inherit !important;
+  background: transparent !important;
 }
 </style>

@@ -19,6 +19,12 @@
   --indigo: #2c3e50;
   --green: hsla(160, 100%, 37%, 1);
 
+  /* ===== Chat UI 색상 (Light mode) ===== */
+  --chat-surface: #e5e5e5;           /* human message, code header, chat prompt */
+  --chat-code-body: #f5f5f5;         /* code block body */
+  --chat-text: #525252;              /* 보조 텍스트 (언어 배지, 복사 버튼) */
+  --chat-text-hover: #171717;        /* 호버 시 텍스트 */
+
   /* Light theme */
   --background: oklch(1 0 0);
   --background-soft: var(--white-soft);
@@ -62,6 +68,12 @@
 }
 
 .dark {
+  /* ===== Chat UI 색상 (Dark mode) ===== */
+  --chat-surface: #262626;           /* human message, code header, chat prompt */
+  --chat-code-body: #1e1e1e;         /* code block body */
+  --chat-text: #b4b4b4;              /* 보조 텍스트 (언어 배지, 복사 버튼) */
+  --chat-text-hover: #ffffff;        /* 호버 시 텍스트 */
+
   --background: oklch(0.145 0 0);
   --background-soft: var(--black-soft);
   --background-mute: var(--black-mute);
