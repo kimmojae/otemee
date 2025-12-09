@@ -25,10 +25,7 @@ const handleNewChat = () => {
 <template>
   <div class="flex h-full bg-white dark:bg-neutral-900">
     <!-- 헤더 (타이틀바) -->
-    <header
-      class="absolute inset-x-0 top-0 h-12 z-10 drag-region"
-      @dblclick="handleDoubleClick"
-    >
+    <header class="absolute inset-x-0 top-0 h-12 z-10 drag-region" @dblclick="handleDoubleClick">
       <!-- 좌측: 사이드바 토글 + 새 채팅 버튼 -->
       <div
         class="absolute flex px-2 py-2.5 items-center transition-[left] duration-300 text-neutral-500 dark:text-neutral-400 no-drag"
