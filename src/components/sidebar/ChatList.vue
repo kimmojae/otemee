@@ -11,6 +11,8 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   selectChat: [id: string]
+  renameChat: [id: string]
+  deleteChat: [id: string]
 }>()
 </script>
 
@@ -27,6 +29,8 @@ const emit = defineEmits<{
           :chat="chat"
           :is-active="chat.id === activeChatId"
           @click="emit('selectChat', chat.id)"
+          @rename="emit('renameChat', chat.id)"
+          @delete="emit('deleteChat', chat.id)"
         />
       </div>
     </div>

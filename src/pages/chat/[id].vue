@@ -1,10 +1,11 @@
 <route lang="yaml">
-name: home
+name: chat
 meta:
-  title: Home
+  title: Chat
 </route>
 
 <script setup lang="ts">
+import { chatsApi } from '@/api/chats'
 import ChatPrompt from '@/components/chat/ChatPrompt.vue'
 import MessageList from '@/components/chat/MessageList.vue'
 import { useChat, useStreamedMarkdown } from '@/composables/useChat'
@@ -12,6 +13,7 @@ import { useMessageAutoscroll } from '@/composables/useMessageAutoscroll'
 import { useChatsStore } from '@/stores/chats'
 import type { Message } from '@/types/chat'
 
+const route = useRoute()
 const router = useRouter()
 const chatsStore = useChatsStore()
 
@@ -21,8 +23,7 @@ const isStreaming = ref(false)
 let loadingTimer: number | undefined
 let abortController: AbortController | null = null
 
-// 새 채팅용 임시 ID
-const currentChatId = ref<string | null>(null)
+const chatId = computed(() => route.params.id as string)
 
 const { streamChat } = useChat()
 
@@ -32,21 +33,29 @@ const { containerRef, spacerHeight, handleNewUserMessage, showScrollToBottom, sc
     isStreaming,
   })
 
-// 홈 페이지 진입 시 새 채팅 상태로 초기화
-onMounted(() => {
-  chatsStore.setActiveChat(null)
-  currentChatId.value = null
-  messages.value = []
-})
+// 채팅 ID 변경 시 메시지 로드
+watch(
+  chatId,
+  async (newChatId) => {
+    if (!newChatId) return
+
+    chatsStore.setActiveChat(newChatId)
+    try {
+      const chatDetail = await chatsApi.get(newChatId)
+      messages.value = chatDetail.messages.map((msg) => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        createdAt: msg.created_at,
+      }))
+    } catch {
+      router.push('/')
+    }
+  },
+  { immediate: true },
+)
 
 const handleMessageSubmit = async (content: string) => {
-  // 새 채팅이면 chat_id 생성
-  const isNewChat = !currentChatId.value
-  if (isNewChat) {
-    currentChatId.value = crypto.randomUUID()
-  }
-
-  // 사용자 메시지 추가
   const userMessage: Message = {
     id: Date.now().toString(),
     role: 'user',
@@ -64,7 +73,6 @@ const handleMessageSubmit = async (content: string) => {
     isLoading.value = true
   }, 750)
 
-  // AI 응답 메시지 준비
   const aiMessage: Message = {
     id: (Date.now() + 1).toString(),
     role: 'assistant',
@@ -79,7 +87,7 @@ const handleMessageSubmit = async (content: string) => {
 
   await streamChat({
     message: content,
-    chatId: currentChatId.value ?? undefined,
+    chatId: chatId.value,
     onChunk: (chunk) => {
       if (loadingTimer) {
         clearTimeout(loadingTimer)
@@ -102,12 +110,6 @@ const handleMessageSubmit = async (content: string) => {
       isStreaming.value = false
       isLoading.value = false
       abortController = null
-
-      // 새 채팅이면 목록 새로고침 후 해당 채팅 페이지로 이동
-      if (isNewChat && currentChatId.value) {
-        chatsStore.refreshChats()
-        router.push(`/chat/${currentChatId.value}`)
-      }
     },
     onError: (error) => {
       console.error('Chat error:', error)
@@ -139,65 +141,52 @@ const handleCancel = () => {
 
 <template>
   <div class="flex flex-col flex-1 overflow-hidden">
-    <!-- 메시지가 없을 때: 중앙 정렬 -->
-    <div v-if="messages.length === 0" class="flex flex-col flex-1 justify-center">
+    <div class="relative flex-1 min-h-0">
+      <div ref="containerRef" class="h-full overflow-y-auto">
+        <MessageList
+          :messages="messages"
+          :show-loading-dots="isLoading"
+          :spacer-height="spacerHeight"
+        />
+      </div>
+
+      <!-- 스크롤 하단 버튼 -->
+      <Transition
+        enter-active-class="transition-opacity duration-200"
+        leave-active-class="transition-opacity duration-200"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <button
+          v-if="showScrollToBottom"
+          class="absolute bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 flex items-center justify-center shadow-lg cursor-pointer transition-colors"
+          @click="scrollToBottom"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="text-neutral-600 dark:text-neutral-300"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      </Transition>
+    </div>
+
+    <div class="shrink-0">
       <ChatPrompt
-        :is-new-chat="true"
+        :is-new-chat="false"
         :is-streaming="isStreaming"
         @submit="handleMessageSubmit"
         @cancel="handleCancel"
       />
     </div>
-
-    <!-- 메시지가 있을 때: 리스트 + 하단 고정 입력창 -->
-    <template v-else>
-      <div class="relative flex-1 min-h-0">
-        <div ref="containerRef" class="h-full overflow-y-auto">
-          <MessageList
-            :messages="messages"
-            :show-loading-dots="isLoading"
-            :spacer-height="spacerHeight"
-          />
-        </div>
-
-        <!-- 스크롤 하단 버튼 -->
-        <Transition
-          enter-active-class="transition-opacity duration-200"
-          leave-active-class="transition-opacity duration-200"
-          enter-from-class="opacity-0"
-          leave-to-class="opacity-0"
-        >
-          <button
-            v-if="showScrollToBottom"
-            class="absolute bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 flex items-center justify-center shadow-lg cursor-pointer transition-colors"
-            @click="scrollToBottom"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-neutral-600 dark:text-neutral-300"
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
-        </Transition>
-      </div>
-
-      <div class="shrink-0">
-        <ChatPrompt
-          :is-new-chat="false"
-          :is-streaming="isStreaming"
-          @submit="handleMessageSubmit"
-          @cancel="handleCancel"
-        />
-      </div>
-    </template>
   </div>
 </template>

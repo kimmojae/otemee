@@ -2,16 +2,69 @@
 import { useChatsStore } from '@/stores/chats'
 import { storeToRefs } from 'pinia'
 import ChatList from './ChatList.vue'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
+const router = useRouter()
 const chatsStore = useChatsStore()
 const { groupedChats, activeChatId } = storeToRefs(chatsStore)
 
+// Rename dialog state
+const isRenameDialogOpen = ref(false)
+const renamingChatId = ref<string | null>(null)
+const newChatTitle = ref('')
+
+// Delete dialog state
+const isDeleteDialogOpen = ref(false)
+const deletingChatId = ref<string | null>(null)
+
 const handleNewChat = () => {
-  chatsStore.addChat('New Chat')
+  // 새 채팅 화면으로 이동
+  router.push('/')
 }
 
 const handleSelectChat = (id: string) => {
-  chatsStore.setActiveChat(id)
+  // 채팅 페이지로 이동
+  router.push(`/chat/${id}`)
+}
+
+const handleRenameChat = (id: string) => {
+  const chat = chatsStore.chats?.find(c => c.id === id)
+  if (chat) {
+    renamingChatId.value = id
+    newChatTitle.value = chat.title
+    isRenameDialogOpen.value = true
+  }
+}
+
+const confirmRename = async () => {
+  if (renamingChatId.value && newChatTitle.value.trim()) {
+    await chatsStore.renameChat(renamingChatId.value, newChatTitle.value.trim())
+    isRenameDialogOpen.value = false
+    renamingChatId.value = null
+    newChatTitle.value = ''
+  }
+}
+
+const handleDeleteChat = (id: string) => {
+  deletingChatId.value = id
+  isDeleteDialogOpen.value = true
+}
+
+const confirmDelete = async () => {
+  if (deletingChatId.value) {
+    await chatsStore.deleteChat(deletingChatId.value)
+    isDeleteDialogOpen.value = false
+    deletingChatId.value = null
+  }
 }
 </script>
 
@@ -46,7 +99,56 @@ const handleSelectChat = (id: string) => {
         :groups="groupedChats"
         :active-chat-id="activeChatId"
         @select-chat="handleSelectChat"
+        @rename-chat="handleRenameChat"
+        @delete-chat="handleDeleteChat"
       />
     </div>
+
+    <!-- Rename Dialog -->
+    <Dialog v-model:open="isRenameDialogOpen">
+      <DialogContent class="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>채팅 이름 변경</DialogTitle>
+          <DialogDescription>
+            새로운 채팅 이름을 입력하세요.
+          </DialogDescription>
+        </DialogHeader>
+        <div class="py-4">
+          <Input
+            v-model="newChatTitle"
+            placeholder="채팅 이름"
+            @keyup.enter="confirmRename"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="isRenameDialogOpen = false">
+            취소
+          </Button>
+          <Button @click="confirmRename">
+            변경
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Delete Confirmation Dialog -->
+    <Dialog v-model:open="isDeleteDialogOpen">
+      <DialogContent class="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>채팅 삭제</DialogTitle>
+          <DialogDescription>
+            이 채팅을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="isDeleteDialogOpen = false">
+            취소
+          </Button>
+          <Button variant="destructive" @click="confirmDelete">
+            삭제
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

@@ -8,8 +8,9 @@
   },
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently \"pnpm dev:vite\" \"pnpm dev:electron\"",
+    "dev": "concurrently \"pnpm dev:vite\" \"pnpm dev:server\" \"pnpm dev:electron\"",
     "dev:vite": "vite",
+    "dev:server": "cd server && uv run uvicorn main:app --reload --port 8000",
     "dev:electron": "wait-on http://localhost:5173 && NODE_ENV=development electron .",
     "build": "run-p type-check \"build-only {@}\" --",
     "build:electron": "pnpm build && electron-builder",
