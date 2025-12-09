@@ -67,6 +67,3 @@ venv/
 
 # SQLite
 *.db
-
-# Test files
-src/assets/markdown-test.md
