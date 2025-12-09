@@ -52,3 +52,21 @@ __screenshots__/
 # Claude Code
 .claude/
 CLAUDE.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+.venv/
+venv/
+
+# SQLite
+*.db
+
+# Test files
+src/assets/markdown-test.md
