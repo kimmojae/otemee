@@ -1,5 +1,3 @@
-import 'katex/dist/katex.min.css'
-import 'streamdown-vue/style.css'
 import './assets/main.css'
 
 import { VueQueryPlugin } from '@tanstack/vue-query'
