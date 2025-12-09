@@ -1,6 +1,8 @@
 @import 'pretendard/dist/web/static/pretendard.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import 'katex/dist/katex.min.css';
+@import 'streamdown-vue/style.css';
 
 @layer theme, base, components, utilities;
 
@@ -170,11 +172,6 @@
     cursor: pointer;
   }
 
-  .drag-region {
-    -webkit-app-region: drag;
-    app-region: drag;
-  }
-
   ::-webkit-scrollbar {
     @apply w-1.5;
   }
@@ -215,87 +212,4 @@
       opacity: 1;
     }
   }
-}
-
-/* ===== Markdown Styles ===== */
-@reference "tailwindcss";
-
-/* 기본 prose 스타일 */
-.prose {
-  @apply text-neutral-900 dark:text-neutral-100 w-full min-w-0 max-w-full overflow-x-hidden;
-}
-
-/* 코드 블록 */
-[data-streamdown='code-block'] {
-  @apply my-4 rounded-lg overflow-hidden;
-}
-
-[data-streamdown='code-block'] pre {
-  @apply overflow-x-auto;
-}
-
-/* 테이블 */
-[data-streamdown='table'] {
-  @apply w-full border-collapse;
-}
-
-[data-streamdown='table'] th {
-  @apply bg-neutral-100 dark:bg-neutral-800 font-semibold px-3 py-2;
-}
-
-[data-streamdown='table'] td {
-  @apply border-t border-neutral-200 dark:border-neutral-700 px-3 py-2;
-}
-
-/* 제목 */
-[data-streamdown='h1'] {
-  @apply text-3xl font-bold mt-8 mb-4;
-}
-
-[data-streamdown='h2'] {
-  @apply text-2xl font-bold mt-6 mb-3;
-}
-
-[data-streamdown='h3'] {
-  @apply text-xl font-bold mt-4 mb-2;
-}
-
-/* 링크 */
-[data-streamdown='link'] {
-  @apply text-blue-600 dark:text-blue-400 hover:underline;
-}
-
-/* 인라인 코드 */
-[data-streamdown='code']:not([data-streamdown='code-block'] *) {
-  @apply bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono;
-}
-
-/* 리스트 */
-[data-streamdown='ul'],
-[data-streamdown='ol'] {
-  @apply my-4 ml-6;
-}
-
-[data-streamdown='li'] {
-  @apply my-1;
-}
-
-/* 블록쿼트 */
-[data-streamdown='blockquote'] {
-  @apply border-l-4 border-neutral-300 dark:border-neutral-700 pl-4 my-4 italic;
-}
-
-/* 수평선 */
-[data-streamdown='hr'] {
-  @apply border-neutral-300 dark:border-neutral-700 my-6;
-}
-
-/* 이미지 */
-[data-streamdown='img'] {
-  @apply rounded-lg max-w-full h-auto my-4;
-}
-
-/* 문단 */
-[data-streamdown='p'] {
-  @apply my-3 leading-relaxed;
 }
