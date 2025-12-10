@@ -28,20 +28,32 @@
       </div>
 
       <!-- 컨트롤 버튼들 -->
-      <div class="flex w-full items-center justify-end gap-2 px-3 pt-2">
-        <!-- TODO: 파일 첨부 버튼 -->
-        <!-- <div class="flex-1 flex justify-end items-center gap-2">
-          <button
+      <div class="flex w-full items-center justify-between px-3 pt-2">
+        <!-- 왼쪽: 첨부 버튼 (추후 구현) -->
+        <div class="flex items-center">
+          <!-- <button
             type="button"
-            class="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-neutral-700 border border-transparent"
-            title="Upload files"
+            class="flex items-center justify-center h-9 w-9 rounded-full text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           >
-            <PlusIcon class="w-4.5 h-4.5 stroke-2 text-neutral-500 dark:text-neutral-400" />
-          </button>
-        </div> -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button> -->
+        </div>
 
-        <!-- 전송 버튼 -->
+        <!-- 오른쪽: 모델 선택 + 전송 버튼 -->
         <div class="flex items-center gap-2">
+          <ModelPicker v-model="localModel" />
           <button
             ref="submitButtonRef"
             :disabled="!canSubmit && !isStreaming"
@@ -79,18 +91,34 @@
 </template>
 
 <script setup lang="ts">
+import ModelPicker from './ModelPicker.vue'
+
 const props = defineProps<{
   isNewChat?: boolean
   isStreaming?: boolean
+  selectedModel?: string
 }>()
 
 const emit = defineEmits<{
-  submit: [content: string]
+  submit: [content: string, model: string]
   cancel: []
+  'update:selectedModel': [model: string]
 }>()
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const messageContent = ref('')
+
+// 기본 모델 설정 (localStorage에서 복원하거나 기본값 사용)
+const DEFAULT_MODEL = 'gemma3:1b'
+const localModel = ref(
+  props.selectedModel || localStorage.getItem('selectedModel') || DEFAULT_MODEL,
+)
+
+// 모델 변경 시 localStorage에 저장
+watch(localModel, (newModel) => {
+  localStorage.setItem('selectedModel', newModel)
+  emit('update:selectedModel', newModel)
+})
 
 // 전송 가능 여부
 const canSubmit = computed(() => messageContent.value.trim().length > 0)
@@ -122,7 +150,7 @@ const handleSubmit = () => {
   if (!canSubmit.value) return
 
   const content = messageContent.value.trim()
-  emit('submit', content)
+  emit('submit', content, localModel.value)
 
   // 입력창 초기화
   messageContent.value = ''
