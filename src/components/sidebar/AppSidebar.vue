@@ -28,7 +28,7 @@ const deletingChatId = ref<string | null>(null)
 
 const handleNewChat = () => {
   // 새 채팅 화면으로 이동
-  router.push('/')
+  router.push('/chat/new')
 }
 
 const handleSelectChat = (id: string) => {
@@ -102,6 +102,11 @@ const confirmDelete = async () => {
         @rename-chat="handleRenameChat"
         @delete-chat="handleDeleteChat"
       />
+    </div>
+
+    <!-- 브랜딩 -->
+    <div class="py-3 text-center text-xs text-neutral-400 dark:text-neutral-600">
+      © Otemee
     </div>
 
     <!-- Rename Dialog -->

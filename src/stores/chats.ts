@@ -117,8 +117,27 @@ export const useChatsStore = defineStore('chats', () => {
     activeChatId.value = null
   }
 
-  const refreshChats = () => {
-    queryClient.invalidateQueries({ queryKey: ['chats'] })
+  const refreshChats = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['chats'] })
+  }
+
+  // Optimistic Update - 전송 즉시 사이드바에 새 채팅 추가
+  const addOptimisticChat = (chatId: string, firstMessage: string) => {
+    const title = firstMessage.slice(0, 30) + (firstMessage.length > 30 ? '...' : '')
+    const now = new Date().toISOString()
+
+    queryClient.setQueryData<ChatResponse[]>(['chats'], (old) => {
+      const newChat: ChatResponse = {
+        id: chatId,
+        title,
+        created_at: now,
+        updated_at: now,
+      }
+      return old ? [newChat, ...old] : [newChat]
+    })
+
+    // 새 채팅을 활성화
+    activeChatId.value = chatId
   }
 
   return {
@@ -137,5 +156,6 @@ export const useChatsStore = defineStore('chats', () => {
     setActiveChat,
     clearHistory,
     refreshChats,
+    addOptimisticChat,
   }
 })

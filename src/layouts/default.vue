@@ -1,15 +1,33 @@
 <script setup lang="ts">
+import SettingsModal from '@/components/settings/SettingsModal.vue'
+import { useSettingsStore } from '@/stores/settings'
 import { Icon } from '@iconify/vue'
-import { useDark, useToggle } from '@vueuse/core'
+import { onKeyStroke } from '@vueuse/core'
+
+const router = useRouter()
 
 const sidebarStore = useSidebarStore()
 const { isOpen } = storeToRefs(sidebarStore)
 const { toggle } = sidebarStore
 
 const chatsStore = useChatsStore()
+const settingsStore = useSettingsStore()
 
-const isDark = useDark()
-const toggleDark = useToggle(isDark)
+// Cmd + , (macOS) / Ctrl + , (Windows/Linux) 로 설정 열기
+onKeyStroke(',', (e) => {
+  if (e.metaKey || e.ctrlKey) {
+    e.preventDefault()
+    settingsStore.openSettings()
+  }
+})
+
+// Cmd + B (macOS) / Ctrl + B (Windows/Linux) 로 사이드바 토글
+onKeyStroke('b', (e) => {
+  if (e.metaKey || e.ctrlKey) {
+    e.preventDefault()
+    toggle()
+  }
+})
 
 const handleDoubleClick = () => {
   if (window.electronAPI?.doubleClick) {
@@ -18,7 +36,12 @@ const handleDoubleClick = () => {
 }
 
 const handleNewChat = () => {
-  chatsStore.addChat('New Chat')
+  chatsStore.setActiveChat(null)
+  router.push('/chat/new')
+}
+
+const openSettings = () => {
+  settingsStore.openSettings()
 }
 </script>
 
@@ -74,15 +97,15 @@ const handleNewChat = () => {
         </button>
       </div>
 
-      <!-- 우측: 다크모드 토글 -->
+      <!-- 우측: 설정 버튼 -->
       <div class="absolute top-0 right-0 p-2 no-drag">
         <button
-          @click="toggleDark()"
+          @click="openSettings"
           class="h-9 w-9 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
-          :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          title="Settings"
         >
           <Icon
-            :icon="isDark ? 'heroicons:sun-20-solid' : 'heroicons:moon-20-solid'"
+            icon="heroicons:cog-6-tooth"
             class="h-5 w-5 text-neutral-500 dark:text-neutral-400"
           />
         </button>
@@ -105,6 +128,9 @@ const handleNewChat = () => {
       <div class="h-12 flex-none w-full"></div>
       <RouterView />
     </main>
+
+    <!-- Settings 모달 -->
+    <SettingsModal />
   </div>
 </template>
 

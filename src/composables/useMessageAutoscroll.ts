@@ -1,5 +1,4 @@
 import type { Message } from '@/types/chat'
-import { onMounted, onUnmounted, ref, watch, type Ref } from 'vue'
 
 interface UseMessageAutoscrollOptions {
   messages: Ref<Message[]>
@@ -14,7 +13,6 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
   let hasSubmittedMessage = false // React의 useRef처럼 비반응형
   let isUpdatingSpacerHeight = false
   const showScrollToBottom = ref(false) // 스크롤 하단 버튼 표시 여부
-  let isAutoScrolling = false // 자동 스크롤 모드 (버튼 클릭 시 활성화)
 
   // Find the last user message index
   const getLastUserMessageIndex = () => {
@@ -194,7 +192,6 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
     spacerHeight.value = calculatedHeight
     isUpdatingSpacerHeight = false
   }
-
 
   // Handle new user message submission
   const handleNewUserMessage = () => {

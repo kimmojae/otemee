@@ -20,8 +20,8 @@
   --green: hsla(160, 100%, 37%, 1);
 
   /* ===== Chat UI 색상 (Light mode) ===== */
-  --chat-surface: #e5e5e5;           /* human message, code header, chat prompt */
-  --chat-code-body: #f5f5f5;         /* code block body */
+  --chat-surface: #f5f5f5;           /* human message, code header, chat prompt (= neutral-100) */
+  --chat-code-body: #ebebeb;         /* code block body (약간 더 진하게) */
   --chat-text: #525252;              /* 보조 텍스트 (언어 배지, 복사 버튼) */
   --chat-text-hover: #171717;        /* 호버 시 텍스트 */
 

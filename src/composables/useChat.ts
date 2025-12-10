@@ -6,6 +6,7 @@ interface StreamChatOptions {
   message: string
   chatId?: string // chat_id가 있으면 저장, 없으면 임시 채팅
   model?: string
+  onChatCreated?: (chatId: string) => void // 새 채팅 생성 이벤트
   onChunk: (text: string) => void
   onDone: () => void
   onError?: (error: Error) => void
@@ -17,6 +18,7 @@ export function useChat() {
     message,
     chatId,
     model = 'gemma3:1b',
+    onChatCreated,
     onChunk,
     onDone,
     onError,
@@ -39,6 +41,7 @@ export function useChat() {
 
       const reader = response.body!.getReader()
       const decoder = new TextDecoder()
+      let currentEventType = '' // SSE 이벤트 타입 추적
 
       while (true) {
         const { done, value } = await reader.read()
@@ -48,14 +51,22 @@ export function useChat() {
         const lines = text.split('\n')
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          // SSE 이벤트 타입 파싱
+          if (line.startsWith('event: ')) {
+            currentEventType = line.slice(7).trim()
+          } else if (line.startsWith('data: ')) {
             const data = line.slice(6)
             if (data === '[DONE]') {
               onDone()
             } else {
               try {
                 const parsed = JSON.parse(data)
-                if (parsed.content) {
+
+                // chat_created 이벤트 처리
+                if (currentEventType === 'chat_created' && parsed.chat_id) {
+                  onChatCreated?.(parsed.chat_id)
+                  currentEventType = '' // 이벤트 타입 리셋
+                } else if (parsed.content) {
                   onChunk(parsed.content)
                 }
               } catch {
