@@ -1,18 +1,17 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
 from database import get_db
-from models.chat import Chat, Message
+from fastapi import APIRouter, Depends, HTTPException
+from models.chat import Chat
 from schemas.chat import (
     ChatCreate,
     ChatDetailResponse,
     ChatResponse,
     ChatUpdate,
 )
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/api/chats", tags=["chats"])
 
@@ -35,9 +34,7 @@ async def create_chat(chat: ChatCreate, db: AsyncSession = Depends(get_db)):
 @router.get("/{chat_id}", response_model=ChatDetailResponse)
 async def get_chat(chat_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Chat)
-        .where(Chat.id == chat_id)
-        .options(selectinload(Chat.messages))
+        select(Chat).where(Chat.id == chat_id).options(selectinload(Chat.messages))
     )
     chat = result.scalar_one_or_none()
     if not chat:
