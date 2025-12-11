@@ -1,3 +1,78 @@
+<script setup lang="ts">
+import ModelPicker from './ModelPicker.vue'
+
+const props = defineProps<{
+  isNewChat?: boolean
+  isStreaming?: boolean
+  selectedModel?: string
+}>()
+
+const emit = defineEmits<{
+  submit: [content: string, model: string]
+  cancel: []
+  'update:selectedModel': [model: string]
+}>()
+
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const messageContent = ref('')
+
+// 기본 모델 설정 (localStorage에서 복원하거나 기본값 사용)
+const DEFAULT_MODEL = 'gemma3:1b'
+const localModel = ref(
+  props.selectedModel || localStorage.getItem('selectedModel') || DEFAULT_MODEL,
+)
+
+// 모델 변경 시 localStorage에 저장
+watch(localModel, (newModel) => {
+  localStorage.setItem('selectedModel', newModel)
+  emit('update:selectedModel', newModel)
+})
+
+// 전송 가능 여부
+const canSubmit = computed(() => messageContent.value.trim().length > 0)
+
+// Textarea 자동 높이 조절
+const handleTextareaInput = (e: Event) => {
+  const target = e.target as HTMLTextAreaElement
+  target.style.height = 'auto'
+  target.style.height = Math.min(target.scrollHeight, 24 * 8) + 'px'
+}
+
+// Enter 키 처리 (한글 입력 고려)
+const handleKeyDown = (e: KeyboardEvent) => {
+  // Enter + Shift: 줄바꿈 허용
+  if (e.key === 'Enter' && e.shiftKey) {
+    return
+  }
+
+  // Enter만 눌렀을 때: 전송
+  // e.isComposing으로 한글 입력 중인지 체크 (브라우저 내장 플래그)
+  if (e.key === 'Enter' && !e.isComposing) {
+    e.preventDefault()
+    handleSubmit()
+  }
+}
+
+// 메시지 전송
+const handleSubmit = () => {
+  if (!canSubmit.value) return
+
+  const content = messageContent.value.trim()
+  emit('submit', content, localModel.value)
+
+  // 입력창 초기화
+  messageContent.value = ''
+  if (textareaRef.value) {
+    textareaRef.value.style.height = 'auto'
+  }
+}
+
+// 전송 취소
+const handleCancel = () => {
+  emit('cancel')
+}
+</script>
+
 <template>
   <div class="pb-3 px-3">
     <!-- 로고 (새 채팅일 때) -->
@@ -89,78 +164,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import ModelPicker from './ModelPicker.vue'
-
-const props = defineProps<{
-  isNewChat?: boolean
-  isStreaming?: boolean
-  selectedModel?: string
-}>()
-
-const emit = defineEmits<{
-  submit: [content: string, model: string]
-  cancel: []
-  'update:selectedModel': [model: string]
-}>()
-
-const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const messageContent = ref('')
-
-// 기본 모델 설정 (localStorage에서 복원하거나 기본값 사용)
-const DEFAULT_MODEL = 'gemma3:1b'
-const localModel = ref(
-  props.selectedModel || localStorage.getItem('selectedModel') || DEFAULT_MODEL,
-)
-
-// 모델 변경 시 localStorage에 저장
-watch(localModel, (newModel) => {
-  localStorage.setItem('selectedModel', newModel)
-  emit('update:selectedModel', newModel)
-})
-
-// 전송 가능 여부
-const canSubmit = computed(() => messageContent.value.trim().length > 0)
-
-// Textarea 자동 높이 조절
-const handleTextareaInput = (e: Event) => {
-  const target = e.target as HTMLTextAreaElement
-  target.style.height = 'auto'
-  target.style.height = Math.min(target.scrollHeight, 24 * 8) + 'px'
-}
-
-// Enter 키 처리 (한글 입력 고려)
-const handleKeyDown = (e: KeyboardEvent) => {
-  // Enter + Shift: 줄바꿈 허용
-  if (e.key === 'Enter' && e.shiftKey) {
-    return
-  }
-
-  // Enter만 눌렀을 때: 전송
-  // e.isComposing으로 한글 입력 중인지 체크 (브라우저 내장 플래그)
-  if (e.key === 'Enter' && !e.isComposing) {
-    e.preventDefault()
-    handleSubmit()
-  }
-}
-
-// 메시지 전송
-const handleSubmit = () => {
-  if (!canSubmit.value) return
-
-  const content = messageContent.value.trim()
-  emit('submit', content, localModel.value)
-
-  // 입력창 초기화
-  messageContent.value = ''
-  if (textareaRef.value) {
-    textareaRef.value.style.height = 'auto'
-  }
-}
-
-// 전송 취소
-const handleCancel = () => {
-  emit('cancel')
-}
-</script>

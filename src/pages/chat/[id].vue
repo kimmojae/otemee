@@ -196,6 +196,7 @@ const handleCancel = () => {
             :messages="messages"
             :show-loading-dots="isLoading"
             :spacer-height="spacerHeight"
+            :is-streaming="isStreaming"
           />
         </div>
 
