@@ -16,11 +16,14 @@ const isOpen = ref(false)
 const searchQuery = ref('')
 
 // TanStack Query로 모델 목록 캐싱
-const { data: models, isLoading } = useQuery({
+const { data: modelsResponse, isLoading } = useQuery({
   queryKey: ['models'],
   queryFn: modelsApi.list,
   staleTime: 1000 * 60 * 5, // 5분간 캐싱
 })
+
+const models = computed(() => modelsResponse.value?.models || [])
+const ollamaStatus = computed(() => modelsResponse.value?.ollama_status || 'running')
 
 // 검색 필터링
 const filteredModels = computed(() => {
@@ -50,7 +53,18 @@ const groupedModels = computed(() => {
 const selectedModelName = computed(() => {
   if (!props.modelValue) return 'Select model'
   const model = models.value?.find((m) => m.id === props.modelValue)
-  return model?.name || props.modelValue
+  return model?.name || 'Select model'
+})
+
+// 현재 선택된 모델이 목록에 없으면 첫 번째 모델 선택
+watch(models, (newModels) => {
+  if (!props.modelValue || newModels.length === 0) return
+
+  const modelExists = newModels.some((m) => m.id === props.modelValue)
+  if (!modelExists && newModels.length > 0) {
+    // 선택된 모델이 목록에 없으면 첫 번째 모델 선택
+    emit('update:modelValue', newModels[0].id)
+  }
 })
 
 const selectModel = (model: Model) => {
@@ -100,14 +114,8 @@ const selectModel = (model: Model) => {
       <div class="max-h-64 overflow-y-auto p-1">
         <div v-if="isLoading" class="py-4 text-center text-sm text-neutral-500">Loading...</div>
 
-        <div
-          v-else-if="Object.keys(groupedModels).length === 0"
-          class="py-4 text-center text-sm text-neutral-500"
-        >
-          No models found
-        </div>
-
         <template v-else>
+          <!-- 모델 목록 -->
           <div v-for="(providerModels, provider) in groupedModels" :key="provider" class="mb-2">
             <!-- Provider 헤더 -->
             <div
@@ -134,6 +142,26 @@ const selectModel = (model: Model) => {
                 {{ model.size }}
               </span>
             </button>
+          </div>
+
+          <!-- Ollama가 실행되지 않았을 때 안내 메시지 -->
+          <div v-if="ollamaStatus === 'not_running' && !searchQuery" class="mb-2">
+            <div
+              class="px-2 py-1 text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
+            >
+              Ollama
+            </div>
+            <div class="px-2 py-2 text-xs text-neutral-500 dark:text-neutral-400">
+              Ollama is not running
+            </div>
+          </div>
+
+          <!-- 모델도 없고 Ollama도 실행 안됨 -->
+          <div
+            v-if="Object.keys(groupedModels).length === 0 && ollamaStatus === 'running'"
+            class="py-4 text-center text-sm text-neutral-500"
+          >
+            No models found
           </div>
         </template>
       </div>

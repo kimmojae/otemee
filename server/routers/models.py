@@ -49,6 +49,7 @@ async def get_settings(db: AsyncSession) -> Settings | None:
 async def list_models(db: AsyncSession = Depends(get_db)):
     """모델 목록 조회 (Ollama + API 키가 설정된 Provider)"""
     models = []
+    ollama_status = "running"  # "running" | "not_running"
 
     # 1. Ollama 모델 목록 조회
     try:
@@ -70,7 +71,7 @@ async def list_models(db: AsyncSession = Depends(get_db)):
                         }
                     )
     except httpx.RequestError:
-        pass
+        ollama_status = "not_running"
 
     # 2. API 키가 설정된 Provider 모델 추가
     settings = await get_settings(db)
@@ -84,4 +85,4 @@ async def list_models(db: AsyncSession = Depends(get_db)):
         if settings.groq_api_key:
             models.extend(GROQ_MODELS)
 
-    return {"models": models}
+    return {"models": models, "ollama_status": ollama_status}
