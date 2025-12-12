@@ -1,7 +1,9 @@
 import json
+import logging
 import uuid
 from datetime import datetime
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
@@ -10,32 +12,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models.chat import Chat, Message
 from models.settings import Settings
-from schemas.chat import ChatRequest
+from schemas.chat import ChatRequest, ChatCreate
 from services.llm import LLMServiceFactory
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
 # 모델 ID -> Provider 매핑
 MODEL_PROVIDER_MAP = {
-    # OpenAI
-    "gpt-4o": "openai",
-    "gpt-4o-mini": "openai",
-    "gpt-4-turbo": "openai",
-    "gpt-3.5-turbo": "openai",
-    # Anthropic
-    "claude-sonnet-4-20250514": "anthropic",
-    "claude-3-5-sonnet-20241022": "anthropic",
-    "claude-3-5-haiku-20241022": "anthropic",
-    "claude-3-opus-20240229": "anthropic",
     # Google
-    "gemini-2.0-flash": "google",
-    "gemini-1.5-pro": "google",
-    "gemini-1.5-flash": "google",
-    # Groq
-    "llama-3.3-70b-versatile": "groq",
-    "llama-3.1-8b-instant": "groq",
-    "mixtral-8x7b-32768": "groq",
-    "gemma2-9b-it": "groq",
+    "gemini-2.5-flash-lite": "google",
 }
 
 
@@ -87,6 +74,21 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     )
 
 
+@router.post("/chats")
+async def create_chat(request: ChatCreate, db: AsyncSession = Depends(get_db)):
+    """빈 채팅 생성 (모델 변경 시)"""
+    chat_id = str(uuid.uuid4())
+    chat = Chat(
+        id=chat_id,
+        title=request.title or "제목 없음",
+        model=request.model,
+    )
+    db.add(chat)
+    await db.commit()
+    await db.refresh(chat)
+    return chat
+
+
 @router.post("/chat/{chat_id}")
 async def chat_with_save(
     chat_id: str,
@@ -105,34 +107,15 @@ async def chat_with_save(
 
     # "new" 채팅인지 확인
     is_new_chat = chat_id == "new"
-    actual_chat_id = chat_id
+    actual_chat_id = str(uuid.uuid4()) if is_new_chat else chat_id
+    chat = None
 
-    if is_new_chat:
-        # 새 채팅 생성
-        actual_chat_id = str(uuid.uuid4())
-        chat = Chat(
-            id=actual_chat_id,
-            title=request.message[:50],
-            model=request.model,
-        )
-        db.add(chat)
-        await db.commit()
-    else:
+    if not is_new_chat:
         # 기존 채팅 조회
         result = await db.execute(select(Chat).where(Chat.id == chat_id))
         chat = result.scalar_one_or_none()
         if not chat:
             raise HTTPException(status_code=404, detail="Chat not found")
-
-    # 사용자 메시지 저장
-    user_msg = Message(
-        id=str(uuid.uuid4()),
-        chat_id=actual_chat_id,
-        role="user",
-        content=request.message,
-    )
-    db.add(user_msg)
-    await db.commit()
 
     # AI 응답 스트리밍 + 저장
     ai_content: list[str] = []
@@ -144,11 +127,47 @@ async def chat_with_save(
         if is_new_chat:
             yield f"event: chat_created\ndata: {json.dumps({'chat_id': actual_chat_id})}\n\n"
 
-        async for chunk in llm_service.stream(request.message, request.model):
-            ai_content.append(chunk)
-            yield f"data: {json.dumps({'content': chunk})}\n\n"
+        try:
+            async for chunk in llm_service.stream(request.message, request.model):
+                ai_content.append(chunk)
+                yield f"data: {json.dumps({'content': chunk})}\n\n"
+        except httpx.TimeoutException as e:
+            logger.error(f"Timeout error during streaming: {e}")
+            error_msg = "\n\n요청 시간이 초과되었습니다. 다시 시도해주세요."
+            ai_content.append(error_msg)
+            yield f"data: {json.dumps({'content': error_msg})}\n\n"
+        except httpx.NetworkError as e:
+            logger.error(f"Network error during streaming: {e}")
+            error_msg = "\n\n네트워크 오류가 발생했습니다. 연결을 확인해주세요."
+            ai_content.append(error_msg)
+            yield f"data: {json.dumps({'content': error_msg})}\n\n"
+        except Exception as e:
+            logger.error(f"Unexpected error during streaming: {e}")
+            error_msg = "\n\n오류가 발생했습니다. 다시 시도해주세요."
+            ai_content.append(error_msg)
+            yield f"data: {json.dumps({'content': error_msg})}\n\n"
 
-        # 스트리밍 완료 후 AI 메시지 저장
+        # 스트리밍 성공 시에만 Chat + User + AI 메시지 함께 저장
+        if is_new_chat:
+            # 새 채팅 생성
+            new_chat = Chat(
+                id=actual_chat_id,
+                title=request.message[:50],
+                model=request.model,
+            )
+            db.add(new_chat)
+        else:
+            # 기존 채팅 updated_at 갱신
+            chat.updated_at = datetime.utcnow()
+
+        user_msg = Message(
+            id=str(uuid.uuid4()),
+            chat_id=actual_chat_id,
+            role="user",
+            content=request.message,
+        )
+        db.add(user_msg)
+
         ai_msg = Message(
             id=str(uuid.uuid4()),
             chat_id=actual_chat_id,
@@ -157,8 +176,6 @@ async def chat_with_save(
         )
         db.add(ai_msg)
 
-        # 채팅 updated_at 갱신
-        chat.updated_at = datetime.utcnow()
         await db.commit()
 
         yield "data: [DONE]\n\n"

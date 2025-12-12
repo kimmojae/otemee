@@ -246,11 +246,11 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
 
   // Recalculate spacer height when messages change
   watch(
-    () => messages.value,
+    () => messages.value.length,
     () => {
       updateSpacerHeight()
     },
-    { flush: 'post', deep: true },
+    { flush: 'post' },
   )
 
   // 스트리밍 중 콘텐츠가 늘어나면 버튼 표시 여부 체크
@@ -312,6 +312,7 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
 
     let resizeTimeout: number
     let immediateUpdate = false
+    const observedElements = new Set<Element>()
 
     const resizeObserver = new ResizeObserver((entries) => {
       let hasSignificantChange = false
@@ -353,6 +354,31 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
       }
     })
 
+    // 관찰할 요소 업데이트 (메모리 누수 방지)
+    const updateObservedElements = () => {
+      if (!containerRef.value) return
+
+      const currentElements = new Set<Element>()
+      const messageElements = containerRef.value.querySelectorAll('[data-message-index]')
+
+      // 현재 존재하는 요소 observe
+      messageElements?.forEach((element) => {
+        currentElements.add(element)
+        if (!observedElements.has(element)) {
+          resizeObserver.observe(element)
+          observedElements.add(element)
+        }
+      })
+
+      // 더 이상 존재하지 않는 요소 unobserve
+      observedElements.forEach((element) => {
+        if (!currentElements.has(element)) {
+          resizeObserver.unobserve(element)
+          observedElements.delete(element)
+        }
+      })
+    }
+
     resizeObserver.observe(containerRef.value)
     mutationObserver.observe(containerRef.value, {
       attributes: true,
@@ -360,15 +386,26 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
       attributeFilter: ['class', 'style', 'open', 'data-expanded'],
     })
 
-    const messageElements = containerRef.value.querySelectorAll('[data-message-index]')
-    messageElements.forEach((element) => {
-      resizeObserver.observe(element)
-    })
+    // 초기 요소 observe
+    updateObservedElements()
+
+    // 메시지가 추가/제거될 때마다 observe 업데이트
+    watch(
+      () => messages.value.length,
+      () => {
+        // DOM 업데이트 후 실행
+        requestAnimationFrame(() => {
+          updateObservedElements()
+        })
+      },
+      { flush: 'post' },
+    )
 
     onUnmounted(() => {
       clearTimeout(resizeTimeout)
       resizeObserver.disconnect()
       mutationObserver.disconnect()
+      observedElements.clear()
     })
   })
 

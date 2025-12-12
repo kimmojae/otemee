@@ -9,19 +9,23 @@ const props = defineProps<{
   isStreaming?: boolean
 }>()
 
-// 마지막 AI 메시지인지 확인 (스트리밍 완료 후에만 true)
-const isLastAiMessage = (idx: number) => {
-  // 스트리밍 중이면 false
-  if (props.isStreaming) return false
+// 마지막 AI 메시지 인덱스 계산 (O(n), 한 번만 계산)
+const lastAiMessageIndex = computed(() => {
+  // 스트리밍 중이면 -1
+  if (props.isStreaming) return -1
 
-  const message = props.messages[idx]
-  if (message?.role !== 'assistant') return false
-
-  // 현재 메시지 이후에 assistant 메시지가 있는지 확인
-  for (let i = idx + 1; i < props.messages.length; i++) {
-    if (props.messages[i]?.role === 'assistant') return false
+  // 뒤에서부터 찾기
+  for (let i = props.messages.length - 1; i >= 0; i--) {
+    if (props.messages[i]?.role === 'assistant') {
+      return i
+    }
   }
-  return true
+  return -1
+})
+
+// 마지막 AI 메시지인지 확인 (O(1), 단순 비교)
+const isLastAiMessage = (idx: number) => {
+  return idx === lastAiMessageIndex.value
 }
 
 // 현재 스트리밍 중인 메시지인지 확인 (마지막 AI 메시지 + 스트리밍 중)

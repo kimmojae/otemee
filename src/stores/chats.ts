@@ -122,7 +122,7 @@ export const useChatsStore = defineStore('chats', () => {
   }
 
   // Optimistic Update - 전송 즉시 사이드바에 새 채팅 추가
-  const addOptimisticChat = (chatId: string, firstMessage: string) => {
+  const addOptimisticChat = (chatId: string, firstMessage: string, model: string) => {
     const title = firstMessage.slice(0, 30) + (firstMessage.length > 30 ? '...' : '')
     const now = new Date().toISOString()
 
@@ -130,6 +130,7 @@ export const useChatsStore = defineStore('chats', () => {
       const newChat: ChatResponse = {
         id: chatId,
         title,
+        model,
         created_at: now,
         updated_at: now,
       }

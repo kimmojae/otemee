@@ -33,7 +33,7 @@ export const chatsApi = {
     return response.json()
   },
 
-  create: async (data: { title: string; model?: string }): Promise<ChatResponse> => {
+  create: async (data: { title?: string; model?: string }): Promise<ChatResponse> => {
     const response = await fetch(`${API_BASE}/chats`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

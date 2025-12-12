@@ -11,32 +11,15 @@ router = APIRouter(prefix="/api")
 OLLAMA_BASE_URL = "http://localhost:11434"
 
 # 각 Provider별 지원 모델 목록
-OPENAI_MODELS = [
-    {"id": "gpt-4o", "name": "GPT-4o", "provider": "openai"},
-    {"id": "gpt-4o-mini", "name": "GPT-4o Mini", "provider": "openai"},
-    {"id": "gpt-4-turbo", "name": "GPT-4 Turbo", "provider": "openai"},
-    {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "provider": "openai"},
-]
+OPENAI_MODELS = []
 
-ANTHROPIC_MODELS = [
-    {"id": "claude-sonnet-4-20250514", "name": "Claude Sonnet 4", "provider": "anthropic"},
-    {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet", "provider": "anthropic"},
-    {"id": "claude-3-5-haiku-20241022", "name": "Claude 3.5 Haiku", "provider": "anthropic"},
-    {"id": "claude-3-opus-20240229", "name": "Claude 3 Opus", "provider": "anthropic"},
-]
+ANTHROPIC_MODELS = []
 
 GOOGLE_MODELS = [
-    {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash", "provider": "google"},
-    {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro", "provider": "google"},
-    {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash", "provider": "google"},
+    {"id": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash-Lite", "provider": "google"},
 ]
 
-GROQ_MODELS = [
-    {"id": "llama-3.3-70b-versatile", "name": "Llama 3.3 70B", "provider": "groq"},
-    {"id": "llama-3.1-8b-instant", "name": "Llama 3.1 8B", "provider": "groq"},
-    {"id": "mixtral-8x7b-32768", "name": "Mixtral 8x7B", "provider": "groq"},
-    {"id": "gemma2-9b-it", "name": "Gemma 2 9B", "provider": "groq"},
-]
+GROQ_MODELS = []
 
 
 async def get_settings(db: AsyncSession) -> Settings | None:

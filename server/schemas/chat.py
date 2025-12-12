@@ -32,7 +32,7 @@ class MessageResponse(BaseModel):
 
 
 class ChatCreate(BaseModel):
-    title: str
+    title: str | None = "제목 없음"
     model: str = "gemma3:1b"
 
 

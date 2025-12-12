@@ -188,6 +188,24 @@ const isDark = useDark()
   border-color: #71717a;
 }
 
+/* ===== 테이블 스타일 ===== */
+.streamdown-vue :deep(th) {
+  background: #f5f5f5;
+}
+
+.dark .streamdown-vue :deep(th) {
+  background: #262626;
+}
+
+/* hover 효과 - 미묘한 배경색 */
+.streamdown-vue :deep(tbody tr:hover) {
+  background: rgba(0, 0, 0, 0.03) !important;
+}
+
+.dark .streamdown-vue :deep(tbody tr:hover) {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
 /* ===== KaTeX 에러 스타일 숨김 (스트리밍 중 불완전한 수식) ===== */
 .streamdown-vue :deep(.katex-error) {
   color: inherit !important;
