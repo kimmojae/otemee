@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { chatsApi } from '@/api/chats'
+import { useModelSettings } from '@/composables/useModelSettings'
+import { useChatsStore } from '@/stores/chats'
 import ModelPicker from './ModelPicker.vue'
 
 const props = defineProps<{
   isNewChat?: boolean
   isStreaming?: boolean
   selectedModel?: string
+  hasMessages?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -13,20 +17,45 @@ const emit = defineEmits<{
   'update:selectedModel': [model: string]
 }>()
 
+const router = useRouter()
+const route = useRoute()
+const chatsStore = useChatsStore()
+const { DEFAULT_MODEL, setDefaultModel } = useModelSettings()
+
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const messageContent = ref('')
 
-// 기본 모델 설정 (localStorage에서 복원하거나 기본값 사용)
-const DEFAULT_MODEL = 'gemma3:1b'
-const localModel = ref(
-  props.selectedModel || localStorage.getItem('selectedModel') || DEFAULT_MODEL,
-)
+// localModel을 computed로 변경 (읽기 전용)
+const localModel = computed(() => props.selectedModel || DEFAULT_MODEL)
 
-// 모델 변경 시 localStorage에 저장
-watch(localModel, (newModel) => {
-  localStorage.setItem('selectedModel', newModel)
-  emit('update:selectedModel', newModel)
+// "새 채팅" 라벨 표시 여부
+const shouldShowNewChatLabel = computed(() => {
+  return !props.isNewChat && !!props.hasMessages
 })
+
+// 사용자가 모델 변경 시 명시적 함수로 처리
+const handleModelChange = async (newModel: string) => {
+  // 새 채팅일 때만 localStorage 저장
+  if (props.isNewChat || route.params.id === 'new') {
+    setDefaultModel(newModel)
+  }
+
+  emit('update:selectedModel', newModel)
+
+  // 기존 채팅에서 모델 변경 → 빈 채팅 생성 후 이동 (Claude 방식)
+  // 단, 메시지가 있을 때만! 메시지가 없으면 현재 채팅에서 모델만 변경
+  if (!props.isNewChat && route.params.id !== 'new' && props.hasMessages) {
+    try {
+      const { id } = await chatsApi.create({ model: newModel })
+      // 사이드바 업데이트
+      await chatsStore.refreshChats()
+      // 새 채팅으로 이동
+      await router.push(`/chat/${id}`)
+    } catch (error) {
+      console.error('Failed to create empty chat:', error)
+    }
+  }
+}
 
 // 전송 가능 여부
 const canSubmit = computed(() => messageContent.value.trim().length > 0)
@@ -128,7 +157,11 @@ const handleCancel = () => {
 
         <!-- 오른쪽: 모델 선택 + 전송 버튼 -->
         <div class="flex items-center gap-2">
-          <ModelPicker v-model="localModel" />
+          <ModelPicker
+            :model-value="localModel"
+            :show-new-chat-label="shouldShowNewChatLabel"
+            @update:model-value="handleModelChange"
+          />
           <button
             ref="submitButtonRef"
             :disabled="!canSubmit && !isStreaming"

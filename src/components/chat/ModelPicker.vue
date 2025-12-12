@@ -1,29 +1,30 @@
 <script setup lang="ts">
-import { modelsApi, type Model } from '@/api/models'
+import type { Model } from '@/api/models'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { useQuery } from '@tanstack/vue-query'
+import { useModelsStore } from '@/stores/models'
 
 const props = defineProps<{
   modelValue: string
+  showNewChatLabel?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
+const modelsStore = useModelsStore()
 const isOpen = ref(false)
 const searchQuery = ref('')
 
-// TanStack Query로 모델 목록 캐싱
-const { data: modelsResponse, isLoading } = useQuery({
-  queryKey: ['models'],
-  queryFn: modelsApi.list,
-  staleTime: 1000 * 60 * 5, // 5분간 캐싱
+// 컴포넌트 마운트 시 모델 목록 가져오기
+onMounted(() => {
+  modelsStore.fetchModels()
 })
 
-const models = computed(() => modelsResponse.value?.models || [])
-const ollamaStatus = computed(() => modelsResponse.value?.ollama_status || 'running')
+const models = computed(() => modelsStore.models)
+const ollamaStatus = computed(() => modelsStore.ollamaStatus)
+const isLoading = computed(() => modelsStore.isLoading)
 
 // 검색 필터링
 const filteredModels = computed(() => {
@@ -55,6 +56,11 @@ const selectedModelName = computed(() => {
   const model = models.value?.find((m) => m.id === props.modelValue)
   return model?.name || 'Select model'
 })
+
+// 특정 모델에 "새 채팅" 라벨을 표시할지 여부
+const shouldShowLabelForModel = (model: Model) => {
+  return props.showNewChatLabel && model.id !== props.modelValue
+}
 
 // 현재 선택된 모델이 목록에 없으면 첫 번째 모델 선택
 watch(models, (newModels) => {
@@ -134,7 +140,20 @@ const selectModel = (model: Model) => {
               }"
               @click="selectModel(model)"
             >
-              <span class="truncate">{{ model.name }}</span>
+              <!-- 왼쪽: 모델 이름 + 새 채팅 배지 -->
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="truncate">{{ model.name }}</span>
+
+                <!-- 새 채팅 배지 -->
+                <span
+                  v-if="shouldShowLabelForModel(model)"
+                  class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400 shrink-0"
+                >
+                  새 채팅
+                </span>
+              </div>
+
+              <!-- 오른쪽: 모델 사이즈 -->
               <span
                 v-if="model.size"
                 class="text-xs text-neutral-400 dark:text-neutral-500 ml-2 shrink-0"
