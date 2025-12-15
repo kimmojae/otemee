@@ -35,6 +35,7 @@ const { containerRef, spacerHeight, handleNewUserMessage, showScrollToBottom, sc
   useMessageAutoscroll({
     messages,
     isStreaming,
+    chatId,
   })
 
 // 기존 채팅 메시지 로드

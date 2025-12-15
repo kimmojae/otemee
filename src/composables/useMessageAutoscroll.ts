@@ -3,9 +3,10 @@ import type { Message } from '@/types/chat'
 interface UseMessageAutoscrollOptions {
   messages: Ref<Message[]>
   isStreaming: Ref<boolean>
+  chatId: Ref<string>
 }
 
-export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutoscrollOptions) {
+export function useMessageAutoscroll({ messages, isStreaming, chatId }: UseMessageAutoscrollOptions) {
   const containerRef = ref<HTMLElement | null>(null)
   let pendingScrollToUserMessage = false // React의 useRef처럼 비반응형
   const spacerHeight = ref(0)
@@ -13,6 +14,7 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
   let hasSubmittedMessage = false // React의 useRef처럼 비반응형
   let isUpdatingSpacerHeight = false
   const showScrollToBottom = ref(false) // 스크롤 하단 버튼 표시 여부
+  const prevChatId = ref<string>('') // 초기값을 빈 문자열로 설정
 
   // Find the last user message index
   const getLastUserMessageIndex = () => {
@@ -178,14 +180,35 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
       baseHeight = Math.max(0, containerHeight - contentHeightAfterTarget - targetMessageHeight)
     }
 
-    // 스트리밍 중에는 extraSpace 없이, 콘텐츠가 자연스럽게 채워지도록
-    const calculatedHeight = Math.max(0, baseHeight)
+    // 콘텐츠가 이미 화면을 넘어가는지 체크
+    const allMessagesHeight = Array.from(messageElements).reduce((sum, el) => sum + el.offsetHeight, 0)
 
-    console.log('[updateSpacerHeight] Calculation:', {
+    // baseHeight만 더해서 체크 (extra space 제외)
+    if (allMessagesHeight + baseHeight <= containerHeight) {
+      // 콘텐츠가 화면에 다 보임 → spacer 불필요
+      console.log('[updateSpacerHeight] Content fits in container, no spacer needed:', {
+        allMessagesHeight,
+        baseHeight,
+        total: allMessagesHeight + baseHeight,
+        containerHeight,
+      })
+      spacerHeight.value = 0
+      isUpdatingSpacerHeight = false
+      return
+    }
+
+    // 콘텐츠가 화면을 넘어감 → spacer 필요
+    const extraSpaceForAssistant = isStreaming.value ? containerHeight * 0.4 : 0
+    const calculatedHeight = baseHeight + extraSpaceForAssistant
+
+    console.log('[updateSpacerHeight] Spacer needed:', {
       targetMessageHeight,
       contentHeightAfterTarget,
       elementsAfterCount: elementsAfter.length,
       baseHeight,
+      extraSpaceForAssistant,
+      allMessagesHeight,
+      containerHeight,
       calculatedHeight,
     })
 
@@ -243,6 +266,20 @@ export function useMessageAutoscroll({ messages, isStreaming }: UseMessageAutosc
       isActiveInteraction.value = false
     }
   })
+
+  // ChatId 변경 시 상태 리셋 (Ollama 방식)
+  watch(
+    () => chatId.value,
+    (newChatId, oldChatId) => {
+      // 초기 로드 시에도 리셋 (oldChatId가 undefined거나 다른 경우)
+      if (prevChatId.value !== newChatId) {
+        isActiveInteraction.value = false
+        hasSubmittedMessage = false
+        prevChatId.value = newChatId
+      }
+    },
+    { immediate: true }
+  )
 
   // Recalculate spacer height when messages change
   watch(
